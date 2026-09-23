@@ -24,7 +24,8 @@ import {
   HelpCircle, 
   Lightbulb,
   ExternalLink,
-  Cpu
+  Cpu,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { DocumentaryPackage, SceneBreakdown } from "./types";
@@ -86,6 +87,7 @@ export default function App() {
   // Diagnostics reports for Veo 3 rendering errors
   const [debugReports, setDebugReports] = useState<any[]>([]);
   const [showDiagnostics, setShowDiagnostics] = useState<boolean>(true);
+  const [showGoogleVidsModal, setShowGoogleVidsModal] = useState<boolean>(false);
   const [simulateMode, setSimulateMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("veo3_simulate_mode");
@@ -191,6 +193,35 @@ export default function App() {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Format full documentary package into Google Vids structured prompt
+  const generateGoogleVidsPrompt = (pkg: DocumentaryPackage) => {
+    const scenesText = pkg.sceneBreakdowns.map((s, i) => {
+      const chapter = pkg.chapters[i] || pkg.chapters[0];
+      return `Scene ${s.sceneNumber} (${s.timePeriod || "Historical Era"}):
+- Narration: "${chapter?.narration || s.mood}"
+- Visual Direction: ${s.environment}, ${s.lighting}, ${s.characters || "Documentary focus"}, ${s.cameraMovement}
+- Camera Lens: ${s.lens}
+- Text on Slide / Screen: "${chapter?.onScreenText || s.props || pkg.title}"
+- Sound Atmosphere: ${s.vfx || pkg.soundDesign?.ambient || "Cinematic ambient"}`;
+    }).join("\n\n");
+
+    return `Create a high-impact documentary video titled "${pkg.title}".
+
+PROJECT OUTLINE & TONE:
+- Tone: Cinematic historical documentary with high-fidelity pacing and atmospheric visuals.
+- Hook (0:00 - 0:10): "${pkg.hook.narration}"
+- Visual Cue: ${pkg.hook.visual}
+- Soundtrack: ${pkg.hook.sound}
+
+SCENE-BY-SCENE STORYBOARD & SCRIPT:
+${scenesText}
+
+CONCLUSION & ENGAGEMENT:
+- Closing Narration: "${pkg.ending.conclusion}"
+- Resonant Takeaway: "${pkg.ending.takeaway}"
+- Engagement Question: "${pkg.ending.engagementQuestion}"`;
   };
 
   // Trigger package generation
@@ -443,6 +474,18 @@ export default function App() {
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Package</span>
+            </button>
+          )}
+
+          {selectedPackage && (
+            <button 
+              onClick={() => setShowGoogleVidsModal(true)}
+              className="px-3 py-1.5 bg-blue-950/60 hover:bg-blue-900/60 border border-blue-500/40 text-blue-300 hover:text-white rounded text-xs transition duration-200 flex items-center gap-1.5 font-mono uppercase font-bold shadow-sm"
+              title="Export formatted script to Google Vids"
+            >
+              <Video className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Google Vids</span>
+              <span className="sm:hidden">Vids</span>
             </button>
           )}
 
@@ -862,12 +905,21 @@ export default function App() {
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-6"
                     >
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
                         <h3 className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                           <BookOpen className="w-4 h-4 text-amber-500" />
                           <span>Screenplay Chapter Deck</span>
                         </h3>
-                        <span className="text-[10px] font-mono text-slate-500">PRODUCTION STANDARD V2</span>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setShowGoogleVidsModal(true)}
+                            className="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 hover:text-white text-[10px] font-mono flex items-center gap-1.5 transition font-bold shadow-sm"
+                          >
+                            <Video className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Export for Google Vids</span>
+                          </button>
+                          <span className="text-[10px] font-mono text-slate-500">PRODUCTION STANDARD V2</span>
+                        </div>
                       </div>
 
                       <div className="space-y-6 max-w-4xl mx-auto">
@@ -943,14 +995,23 @@ export default function App() {
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-6"
                     >
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
                         <div>
                           <h3 className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <Film className="w-4 h-4 text-amber-500" />
                             <span>Cinematic Scenes Storyboard</span>
                           </h3>
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500">VEA-3 & IMAGEN 3 ACTIVE</span>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setShowGoogleVidsModal(true)}
+                            className="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 hover:text-white text-[10px] font-mono flex items-center gap-1.5 transition font-bold shadow-sm"
+                          >
+                            <Video className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Open in Google Vids</span>
+                          </button>
+                          <span className="text-[10px] font-mono text-slate-500">GOOGLE VEO & IMAGEN 3 ACTIVE</span>
+                        </div>
                       </div>
 
                       {/* On-Screen Diagnostics Console */}
@@ -1526,6 +1587,139 @@ export default function App() {
 
         </main>
       </div>
+
+      {/* Google Vids Studio & Exporter Modal */}
+      {showGoogleVidsModal && selectedPackage && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg max-w-2xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-slate-950/80 px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <Video className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-display text-sm font-bold text-slate-100 flex items-center gap-2">
+                    <span>Google Vids Workflow & Exporter</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-500/10 border border-blue-500/20 text-blue-400">Workspace Guide</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono">Convert storyboard & screenplay into Google Vids</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowGoogleVidsModal(false)}
+                className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 overflow-y-auto font-sans text-xs">
+              {/* Architecture Clarification Banner */}
+              <div className="bg-blue-950/20 border border-blue-500/30 rounded p-3.5 space-y-2">
+                <div className="flex items-center gap-2 text-blue-400 font-bold font-mono text-[11px]">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>Google Vids vs Google Veo Explained</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  <strong>Google Vids</strong> (<code className="text-blue-300 font-mono text-[10px]">vids.google.com</code>) is Google Workspace's collaborative video creator for presentations, slide timelines, and AI avatars. Google does <em>not</em> provide an open public API for third-party programs to trigger video rendering inside Google Vids.
+                </p>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Google's official developer API for generative video is <strong>Google Veo</strong>, which is already integrated in our Storyboard tab. To produce this video inside Google Vids, use the 3-step bridge below:
+                </p>
+              </div>
+
+              {/* 3 Step Workflow */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+                <div className="bg-slate-950/60 p-2.5 rounded border border-slate-800">
+                  <span className="text-amber-500 font-mono font-bold block mb-1">STEP 1</span>
+                  <span className="text-slate-200 font-semibold block">Copy Vids Prompt</span>
+                  <p className="text-slate-400 text-[10px] mt-0.5">Copies the pre-formatted structured documentary script & cues.</p>
+                </div>
+                <div className="bg-slate-950/60 p-2.5 rounded border border-slate-800">
+                  <span className="text-blue-400 font-mono font-bold block mb-1">STEP 2</span>
+                  <span className="text-slate-200 font-semibold block">Open Google Vids</span>
+                  <p className="text-slate-400 text-[10px] mt-0.5">Launches vids.google.com with your Workspace or Google account.</p>
+                </div>
+                <div className="bg-slate-950/60 p-2.5 rounded border border-slate-800">
+                  <span className="text-emerald-400 font-mono font-bold block mb-1">STEP 3</span>
+                  <span className="text-slate-200 font-semibold block">Paste & Generate</span>
+                  <p className="text-slate-400 text-[10px] mt-0.5">Click "Help me create", paste the prompt, and select your AI voice!</p>
+                </div>
+              </div>
+
+              {/* Formatted Script Preview Box */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
+                    Formatted Google Vids Prompt ({selectedPackage.sceneBreakdowns.length} Scenes)
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(generateGoogleVidsPrompt(selectedPackage), "vids-modal-copy")}
+                    className="text-[10px] font-mono text-amber-400 hover:text-amber-300 flex items-center gap-1"
+                  >
+                    {copiedKey === "vids-modal-copy" ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy Text</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <textarea
+                  readOnly
+                  rows={8}
+                  value={generateGoogleVidsPrompt(selectedPackage)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded p-3 font-mono text-[10px] text-slate-300 leading-relaxed resize-none focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="bg-slate-950/80 px-5 py-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2">
+              <button
+                onClick={() => setShowGoogleVidsModal(false)}
+                className="px-3 py-1.5 text-slate-400 hover:text-slate-200 text-xs font-mono transition"
+              >
+                Close
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => copyToClipboard(generateGoogleVidsPrompt(selectedPackage), "vids-modal-copy-btn")}
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono font-bold rounded flex items-center gap-1.5 transition"
+                >
+                  {copiedKey === "vids-modal-copy-btn" ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Copied to Clipboard</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Vids Prompt</span>
+                    </>
+                  )}
+                </button>
+                <a
+                  href="https://vids.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold rounded flex items-center gap-1.5 transition shadow-lg shadow-blue-600/30"
+                >
+                  <span>Launch Google Vids</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer Bar: Status Indicators */}
       <footer className="h-8 border-t border-slate-800 bg-slate-900 flex items-center px-4 justify-between text-[10px] text-slate-500 font-mono uppercase shrink-0">

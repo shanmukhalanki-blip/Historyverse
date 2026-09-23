@@ -715,15 +715,29 @@ app.post("/api/generate-video", async (req, res) => {
 
   try {
     const ai = getAiClient();
-    const operation = await ai.models.generateVideos({
-      model: "veo-3.1-fast-generate-preview",
-      prompt: `${prompt}. Cinematic documentary style, hyper-realistic, historically accurate, 24fps.`,
-      config: {
-        numberOfVideos: 1,
-        resolution: "720p",
-        aspectRatio: aspectRatio || "16:9"
-      }
-    });
+    let operation;
+    try {
+      operation = await ai.models.generateVideos({
+        model: "veo-3.1-lite-generate-preview",
+        prompt: `${prompt}. Cinematic documentary style, hyper-realistic, historically accurate, 24fps.`,
+        config: {
+          numberOfVideos: 1,
+          resolution: "720p",
+          aspectRatio: aspectRatio || "16:9"
+        }
+      });
+    } catch (mErr: any) {
+      console.warn("Primary veo-3.1-lite model failed, attempting veo-2.0 fallback:", mErr?.message);
+      operation = await ai.models.generateVideos({
+        model: "veo-2.0-generate-001",
+        prompt: `${prompt}. Cinematic documentary style, hyper-realistic, historically accurate, 24fps.`,
+        config: {
+          numberOfVideos: 1,
+          resolution: "720p",
+          aspectRatio: aspectRatio || "16:9"
+        }
+      });
+    }
 
     res.json({ operationName: operation.name });
   } catch (err: any) {
